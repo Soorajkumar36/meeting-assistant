@@ -1,0 +1,21 @@
+# Minimal runtime dependencies for the application
+
+# Core
+python-dotenv>=1.0
+pydantic>=2.0
+
+# Web API
+fastapi>=0.110.0
+uvicorn[standard]>=0.18.0
+
+# HTTP clients
+requests>=2.0
+httpx>=0.28.0
+
+# File upload / forms
+python-multipart>=0.0.5
+
+# Streamlit UI
+streamlit>=1.0
+
+ipykernel

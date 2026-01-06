@@ -1,0 +1,21 @@
+# Development / CI / testing dependencies
+
+# Testing
+pytest>=8.0
+pytest-asyncio>=0.23.0
+
+# Notebooks / interactive development
+jupyter
+ipykernel
+
+# Security / dependency scanning
+pip-audit
+bandit
+
+# Linters / formatters
+black
+ruff
+isort
+
+# Optional: local vulnerability scanner
+safety
