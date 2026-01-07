@@ -69,7 +69,7 @@ def _process_transcript(transcript: Transcript, meeting_id: str):
         for speaker_id, segments in grouped.items()
     }
 
-    summarizer = Summarizer(llm=llm_client)
+    summarizer = Summarizer(llm=llm_client, max_chunk_chars=4000)
     speaker_summaries = summarizer.summarize_speakers(speaker_texts)
     meeting_summary = summarizer.summarize_meeting(transcript)
 
