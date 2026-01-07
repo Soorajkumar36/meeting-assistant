@@ -1,7 +1,8 @@
 import time
+import logging
 from pathlib import Path
 from typing import Iterable
-
+logger = logging.getLogger(__name__)
 
 def cleanup_directory(
     directory: str,
@@ -35,9 +36,9 @@ def cleanup_directory(
         try:
             if file_path.stat().st_mtime < cutoff_time:
                 file_path.unlink()
-        except Exception:
-            # Never raise on retention cleanup
-            pass
+        except Exception as e:
+            # Never raise on retention cleanup; log for diagnostics
+            logger.exception("Failed to remove file during retention cleanup: %s", file_path)
 
 
 def enforce_retention_policy(

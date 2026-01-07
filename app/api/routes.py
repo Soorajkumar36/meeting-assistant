@@ -18,6 +18,7 @@ app = FastAPI(
     version="0.1.0",
 )
 
+REQUEST_TIMEOUT = 30
 # --------------------------------------------------
 # Static file hosting for pyannote
 # --------------------------------------------------
@@ -83,15 +84,15 @@ def health():
 def upload_audio(file: UploadFile = File(...)):
     # Save file locally first
     saved_path = upload_store.save(file)
-    
+
     # Generate unique object key for Pyannote storage
     object_key = saved_path.stem  # e.g., "1735404531.458927"
-    
+
     # Get API key from config
     api_key = config.asr.pyannote_api_key  # ← Use config
     if not api_key:
         raise HTTPException(status_code=500, detail="PYANNOTE_API_KEY not configured")
-    
+
     try:
         # Step 1: Create pre-signed PUT URL
         response = requests.post(
@@ -99,38 +100,41 @@ def upload_audio(file: UploadFile = File(...)):
             json={"url": f"media://{object_key}"},
             headers={
                 "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
+                "Content-Type": "application/json",
+            },
+            timeout=REQUEST_TIMEOUT,
         )
         response.raise_for_status()
         presigned_url = response.json()["url"]
-        
+
         # Step 2: Upload file to Pyannote storage
         with open(saved_path, "rb") as audio_file:
-            upload_response = requests.put(presigned_url, data=audio_file)
+            upload_response = requests.put(presigned_url, data=audio_file, timeout=REQUEST_TIMEOUT)
             upload_response.raise_for_status()
-        
+
         # Return the media:// URL that can be used for processing
         pyannote_url = f"media://{object_key}"
-        
+
         return {
             "status": "uploaded",
             "audio_url": pyannote_url,
             "object_key": object_key,
-            "local_path": str(saved_path)
+            "local_path": str(saved_path),
         }
-    
+
     except requests.exceptions.RequestException as e:
         raise HTTPException(
-            status_code=500,
-            detail=f"Failed to upload to Pyannote: {str(e)}"
+            status_code=500, detail=f"Failed to upload to Pyannote: {str(e)}"
         )
+
 
 # --------------------------------------------------
 # Run pipeline
 # --------------------------------------------------
 @app.post("/process-audio")
-async def process_audio(audio_url: str, num_speakers: int = 2, background_tasks: BackgroundTasks = None):
+async def process_audio(
+    audio_url: str, num_speakers: int = 2, background_tasks: BackgroundTasks = None
+):
     """Enqueue processing and return a job id immediately.
 
     The heavy work runs in a thread via `asyncio.to_thread` inside the

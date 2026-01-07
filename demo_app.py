@@ -71,10 +71,17 @@ if process_btn:
             tmp_path = tmp.name
 
         with open(tmp_path, "rb") as f:
-            upload_response = requests.post(
-                f"{FASTAPI_BASE_URL}/upload-audio",
-                files={"file": f},
-            )
+            try:
+                upload_response = requests.post(
+                    f"{FASTAPI_BASE_URL}/upload-audio",
+                    files={"file": f},
+                    timeout=30,
+                )
+            except requests.exceptions.RequestException as e:
+                st.error(f"Upload failed: {e}")
+                os.unlink(tmp_path)
+                st.stop()
+
 
         os.unlink(tmp_path)
 
@@ -88,10 +95,15 @@ if process_btn:
     # Run diarization + summarization (enqueue + poll)
     # -------------------------------
     with st.spinner("Submitting job..."):
-        process_response = requests.post(
-            f"{FASTAPI_BASE_URL}/process-audio",
-            params={"audio_url": audio_url, "num_speakers": num_speakers},
-        )
+        try:
+            process_response = requests.post(
+                f"{FASTAPI_BASE_URL}/process-audio",
+                params={"audio_url": audio_url, "num_speakers": num_speakers},
+                timeout=10,
+            )
+        except requests.exceptions.RequestException as e:
+            st.error(f"Failed to submit job: {e}")
+            st.stop()
 
         if process_response.status_code != 200:
             st.error("Processing request failed.")
@@ -106,7 +118,11 @@ if process_btn:
         waited = 0
 
         while waited < max_wait:
-            status_resp = requests.get(f"{FASTAPI_BASE_URL}/jobs/{job_id}")
+            try:
+                status_resp = requests.get(f"{FASTAPI_BASE_URL}/jobs/{job_id}", timeout=10)
+            except requests.exceptions.RequestException as e:
+                st.error(f"Failed to fetch job status: {e}")
+                st.stop()
             if status_resp.status_code != 200:
                 st.error("Failed to fetch job status.")
                 st.stop()

@@ -13,7 +13,8 @@ class PyannoteCloudASR(ASRInterface):
 
     DIARIZE_URL = "https://api.pyannote.ai/v1/diarize"
     JOB_URL = "https://api.pyannote.ai/v1/jobs"
-
+    REQUEST_TIMEOUT = 30
+    
     def __init__(
         self,
         api_key: str,
@@ -72,6 +73,7 @@ class PyannoteCloudASR(ASRInterface):
             self.DIARIZE_URL,
             headers=headers,
             json=payload,
+            timeout=self.REQUEST_TIMEOUT,
         )
         response.raise_for_status()
 
@@ -83,11 +85,16 @@ class PyannoteCloudASR(ASRInterface):
         }
 
         while True:
-            response = requests.get(
-                f"{self.JOB_URL}/{job_id}",
-                headers=headers,
-            )
-            response.raise_for_status()
+            try:
+                response = requests.get(
+                    f"{self.JOB_URL}/{job_id}",
+                    headers=headers,
+                    timeout=self.REQUEST_TIMEOUT,
+                )
+                response.raise_for_status()
+            except requests.exceptions.RequestException as e:
+                raise RuntimeError(f"Failed to poll Pyannote job: {e}") from e
+
 
             data = response.json()
             status = data["status"]
