@@ -83,7 +83,7 @@ uvicorn app.api.routes:app --reload --port 8000
 - Start the Streamlit UI (from project root):
 
 ```bash
-streamlit run streamlit_app.py
+streamlit run demo_app.py
 ```
 
 - Open these URLs in your browser:
